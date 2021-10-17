@@ -1,14 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom";
 
-import "./index.css";
+import Home from './pages/Home'
 
-const App = () => (
-  <div className="container">
-    <div>Name: psdlabs-core</div>
-    <div>Framework: react</div>
-    <div>Language: TypeScript</div>
-    <div>CSS: Empty CSS</div>
-  </div>
-);
-ReactDOM.render(<App />, document.getElementById("app"));
+const element = document.getElementById("app");
+
+ReactDOM.render(<Home/>, element);

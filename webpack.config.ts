@@ -3,30 +3,60 @@ import HtmlWebpackPlugin from "html-webpack-plugin";
 import Dotenv from "dotenv-webpack";
 import dotenv from "dotenv";
 
+import { dependencies as deps } from './package.json';
+
+import webpack, { Configuration } from "webpack";
+
 dotenv.config();
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 
-const config: any = {
-  mode: isDevelopment ? "development" : "production",
+const PORT = process.env.PORT || 3000
 
-  entry: path.resolve(__dirname, "src", "index.tsx"),
+const PUBLIC_URL = process.env.PUBLIC_URL || 'http://localhost'
+
+const projectURL = new URL(PUBLIC_URL)
+
+projectURL.port = String(PORT)
+
+interface WebpackConfig extends Configuration {
+  devServer: {
+    hot: boolean
+    port: number | string
+  }
+}
+
+const ModuleFederationPlugin = webpack.container.ModuleFederationPlugin;
+
+const config: WebpackConfig  = {
+  mode: isDevelopment ? "development" : "production",
+  entry: path.resolve(__dirname, 'src', 'index.ts'),
   output: {
-    path: path.resolve(__dirname, "..", "web", "public"),
-    filename: "bundle.js",
+    publicPath: projectURL.toString()
+  },
+  resolve: {
+    extensions: [".tsx", ".ts", ".jsx", ".js", ".json"],
   },
   devServer: {
-    contentBase: path.resolve(__dirname, "public"),
-    index: "mcf-dev.html",
-    historyApiFallback: false,
     hot: true,
-    port: 3001,
+    port: PORT,
   },
+  devtool: "inline-source-map",
   module: {
     rules: [
-      { test: /\.css$/, use: ["style-loader", "css-loader"] },
       {
-        test: /\.(ts|js)x?$/,
+        test: /\.m?js/,
+        type: "javascript/auto",
+        resolve: {
+          fullySpecified: false,
+        },
+      },
+      {
+        test: /\.(css|s[ac]ss)$/i,
+        use: ["style-loader", "css-loader", "postcss-loader"],
+      },
+      {
+        test: /\.(ts|tsx|js|jsx)$/,
         exclude: /node_modules/,
         use: {
           loader: "babel-loader",
@@ -41,16 +71,27 @@ const config: any = {
       },
     ],
   },
-  devtool: "inline-source-map",
-  resolve: {
-    extensions: [".tsx", ".ts", ".js"],
-  },
   plugins: [
     new Dotenv(),
+    new ModuleFederationPlugin({
+      name: "@psdlab/core",
+      filename: "remoteEntry.js",
+      remotes: {},
+      exposes: {},
+      shared: {
+        ...deps,
+        react: {
+          singleton: true,
+          requiredVersion: deps.react,
+        },
+        "react-dom": {
+          singleton: true,
+          requiredVersion: deps["react-dom"],
+        },
+      },
+    }),
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, "public", "index.html"),
-      title: "Hub Digital - Easy Auth",
-      filename: "mcf-dev.html",
     }),
   ],
 };
